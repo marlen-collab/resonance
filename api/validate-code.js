@@ -15,7 +15,7 @@ export default async function handler(req, res) {
   try {
     // ACTION: validate — check code against Airtable
     if (action === 'validate') {
-      const url = `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(table)}?filterByFormula=${encodeURIComponent(`{Code}="${code.toUpperCase()}"`)}`;
+      const url = `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(table)}?filterByFormula=${encodeURIComponent(`{Code}="$UPPER({Code})="${code.toUpperCase()}"
 
       const response = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` }
