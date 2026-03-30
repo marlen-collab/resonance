@@ -27,8 +27,81 @@
 
     #app { height: 100%; display: flex; flex-direction: column; align-items: center; }
 
-    #landing {
+    /* ── ACCESS GATE ── */
+    #gate {
       display: flex; flex-direction: column; align-items: center;
+      justify-content: center; height: 100%; padding: 48px 32px;
+      text-align: center; animation: arrive 2s ease forwards;
+    }
+
+    .gate-title {
+      font-size: clamp(36px, 10vw, 62px); font-weight: 300;
+      letter-spacing: 0.15em; color: var(--accent); line-height: 1;
+      margin-bottom: 36px;
+    }
+
+    .gate-divider { width: 28px; height: 1px; background: var(--border); margin: 0 auto 32px; }
+
+    .gate-text {
+      font-size: clamp(13px, 3.8vw, 15px); line-height: 2;
+      color: var(--muted); font-style: italic; max-width: 280px;
+      letter-spacing: 0.02em; margin-bottom: 40px;
+    }
+
+    .gate-input-wrap {
+      width: 100%; max-width: 280px; margin-bottom: 16px;
+    }
+
+    #access-code-input {
+      width: 100%; background: transparent;
+      border: none; border-bottom: 1px solid var(--border);
+      outline: none; color: var(--text);
+      font-size: clamp(14px, 4vw, 16px); font-family: inherit;
+      font-style: italic; letter-spacing: 0.08em;
+      padding: 10px 0; text-align: center;
+      caret-color: var(--accent); transition: border-color 0.3s ease;
+    }
+
+    #access-code-input:focus { border-bottom-color: var(--accent); }
+    #access-code-input::placeholder { color: var(--muted); opacity: 0.5; }
+
+    .gate-btn {
+      background: transparent; border: 1px solid rgba(196,120,74,0.35);
+      color: var(--accent); padding: 14px 48px; font-size: 10.5px;
+      letter-spacing: 0.28em; text-transform: uppercase; cursor: pointer;
+      font-family: inherit; transition: all 0.5s ease; margin-top: 8px;
+    }
+
+    .gate-btn:hover { border-color: var(--accent); color: var(--accent-deep); background: rgba(196,120,74,0.06); }
+    .gate-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .gate-error {
+      font-size: 12px; font-style: italic; color: var(--accent-deep);
+      opacity: 0.8; margin-top: 16px; min-height: 20px;
+      letter-spacing: 0.04em; display: none;
+    }
+
+    /* ── EXPIRED STATE ── */
+    #expired {
+      display: none; flex-direction: column; align-items: center;
+      justify-content: center; height: 100%; padding: 48px 32px;
+      text-align: center;
+    }
+
+    .expired-title {
+      font-size: clamp(28px, 8vw, 48px); font-weight: 300;
+      letter-spacing: 0.1em; color: var(--muted); margin-bottom: 32px;
+    }
+
+    .expired-text {
+      font-size: clamp(13px, 3.8vw, 15px); line-height: 2.1;
+      color: var(--muted); font-style: italic; max-width: 280px;
+      letter-spacing: 0.02em; opacity: 0.7;
+    }
+
+    /* ── LANDING ── */
+    #landing {
+      display: none; flex-direction: column; align-items: center;
       justify-content: center; height: 100%; padding: 48px 32px;
       text-align: center; animation: arrive 2s ease forwards;
     }
@@ -57,6 +130,7 @@
 
     .enter-btn:hover { border-color: var(--accent); color: var(--accent-deep); background: rgba(196,120,74,0.06); }
 
+    /* ── CHAT ── */
     #chat { display: none; flex-direction: column; width: 100%; max-width: 600px; height: 100%; }
     #chat.active { display: flex; }
 
@@ -168,6 +242,39 @@
 <body>
 <div id="app">
 
+  <!-- ACCESS GATE -->
+  <div id="gate">
+    <div class="gate-title">Resonance</div>
+    <div class="gate-divider"></div>
+    <p class="gate-text">
+      Enter your access code<br/>to open the field.
+    </p>
+    <div class="gate-input-wrap">
+      <input
+        id="access-code-input"
+        type="text"
+        placeholder="your access code"
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="off"
+        spellcheck="false"
+      />
+    </div>
+    <button class="gate-btn" id="gate-btn" onclick="validateCode()">Enter</button>
+    <p class="gate-error" id="gate-error"></p>
+  </div>
+
+  <!-- EXPIRED STATE -->
+  <div id="expired">
+    <div class="expired-title">Your time has passed.</div>
+    <p class="expired-text">
+      Your 3-day immersion has come to an end.<br/><br/>
+      What moved in you — that stays.<br/>
+      The field remembers.
+    </p>
+  </div>
+
+  <!-- LANDING -->
   <div id="landing">
     <div class="landing-title">Resonance</div>
     <div class="divider"></div>
@@ -179,6 +286,7 @@
     <button class="enter-btn" onclick="enterChat()">I'm ready</button>
   </div>
 
+  <!-- CHAT -->
   <div id="chat">
     <div class="chat-header">
       <span>Resonance</span>
@@ -205,21 +313,112 @@
 </div>
 
 <script>
-  const OPENING = `We're here to help you.\n\nPlease don't be afraid.\n\nResonance is not what you think it is.\n\n—\n\nWe're here. You don't have to explain anything yet.\n\nHow long have you been carrying this?`;
+  // ── CONFIG ──
+  
+  
+  
+  const ACCESS_DURATION_MS = 72 * 60 * 60 * 1000; // 72 hours
+  const ACCESS_KEY = 'resonance_access';
   const STORAGE_KEY = 'resonance_conversation';
+
+  const OPENING = `We're here to help you.\n\nPlease don't be afraid.\n\nResonance is not what you think it is.\n\n—\n\nWe're here. You don't have to explain anything yet.\n\nHow long have you been carrying this?`;
 
   let messages = [];
   let loading = false;
 
-  function save() {
+  // ── ACCESS GATE LOGIC ──
+
+  function getStoredAccess() {
+    try { const s = localStorage.getItem(ACCESS_KEY); return s ? JSON.parse(s) : null; } catch(e) { return null; }
+  }
+
+  function storeAccess(data) {
+    try { localStorage.setItem(ACCESS_KEY, JSON.stringify(data)); } catch(e) {}
+  }
+
+  function isAccessValid(access) {
+    if (!access || !access.firstUsedAt) return false;
+    const elapsed = Date.now() - access.firstUsedAt;
+    return elapsed < ACCESS_DURATION_MS;
+  }
+
+  async function validateCode() {
+    const input = document.getElementById('access-code-input');
+    const btn = document.getElementById('gate-btn');
+    const error = document.getElementById('gate-error');
+    const code = input.value.trim().toUpperCase();
+
+    if (!code) { showGateError('Please enter your access code.'); return; }
+
+    btn.disabled = true;
+    btn.textContent = '...';
+    error.style.display = 'none';
+
+    try {
+      // Call our secure serverless function
+      const res = await fetch('/api/validate-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, action: 'validate' })
+      });
+      const data = await res.json();
+
+      if (!data.valid) {
+        if (data.reason === 'expired') {
+          showExpired();
+        } else {
+          showGateError("That code isn't recognizing you. Check your email and try again.");
+          btn.disabled = false; btn.textContent = 'Enter';
+        }
+        return;
+      }
+
+      // Valid — store locally and let them in
+      storeAccess({ code, firstUsedAt: data.firstUsedAt, expiresAt: data.expiresAt, recordId: data.recordId });
+      showLanding();
+
+    } catch(err) {
+      showGateError("Something didn't connect. Try again.");
+      btn.disabled = false; btn.textContent = 'Enter';
+    }
+  }
+
+  function showGateError(msg) {
+    const error = document.getElementById('gate-error');
+    error.textContent = msg;
+    error.style.display = 'block';
+  }
+
+  function showExpired() {
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('expired').style.display = 'flex';
+  }
+
+  function showLanding() {
+    document.getElementById('gate').style.display = 'none';
+    const saved = loadConvo();
+    if (saved && saved.length > 0) {
+      // Returning user — skip landing, go straight to chat
+      document.getElementById('chat').classList.add('active');
+      messages = saved;
+      saved.forEach(msg => renderMessage(msg.role, msg.content, false));
+      setTimeout(() => { document.getElementById('messages').scrollTop = 999999; }, 100);
+    } else {
+      document.getElementById('landing').style.display = 'flex';
+    }
+  }
+
+  // ── CONVERSATION LOGIC ──
+
+  function saveConvo() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(messages)); } catch(e) {}
   }
 
-  function load() {
+  function loadConvo() {
     try { const s = localStorage.getItem(STORAGE_KEY); return s ? JSON.parse(s) : null; } catch(e) { return null; }
   }
 
-  function clear() {
+  function clearConvo() {
     try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
   }
 
@@ -247,16 +446,9 @@
   function enterChat() {
     document.getElementById('landing').style.display = 'none';
     document.getElementById('chat').classList.add('active');
-    const saved = load();
-    if (saved && saved.length > 0) {
-      messages = saved;
-      saved.forEach(msg => renderMessage(msg.role, msg.content, false));
-    } else {
-      messages = [{ role: 'assistant', content: OPENING }];
-      renderMessage('assistant', OPENING, true);
-      save();
-    }
-    setTimeout(() => { document.getElementById('messages').scrollTop = 999999; }, 100);
+    messages = [{ role: 'assistant', content: OPENING }];
+    renderMessage('assistant', OPENING, true);
+    saveConvo();
   }
 
   function confirmNewConvo() {
@@ -268,13 +460,13 @@
   }
 
   function startNewConvo() {
-    clear();
+    clearConvo();
     messages = [];
     document.getElementById('messages').innerHTML = '';
     closeConfirm();
     messages = [{ role: 'assistant', content: OPENING }];
     renderMessage('assistant', OPENING, true);
-    save();
+    saveConvo();
   }
 
   function showTyping() {
@@ -297,6 +489,13 @@
     const text = input.value.trim();
     if (!text || loading) return;
 
+    // Check access is still valid before each message
+    const access = getStoredAccess();
+    if (!access || Date.now() > access.expiresAt) {
+      showExpired();
+      return;
+    }
+
     loading = true;
     input.value = '';
     input.style.height = 'auto';
@@ -304,7 +503,7 @@
 
     messages.push({ role: 'user', content: text });
     renderMessage('user', text, true);
-    save();
+    saveConvo();
     showTyping();
 
     try {
@@ -317,28 +516,31 @@
       hideTyping();
       messages.push({ role: 'assistant', content: data.reply });
       renderMessage('assistant', data.reply, true);
-      save();
+      saveConvo();
     } catch {
       hideTyping();
       const fallback = "We're still here.\n\nTake all the time you need.";
       messages.push({ role: 'assistant', content: fallback });
       renderMessage('assistant', fallback, true);
-      save();
+      saveConvo();
     } finally {
       loading = false;
     }
   }
 
-  // Auto-load saved conversation on page open
+  // ── INIT ──
   window.addEventListener('load', () => {
-    const saved = load();
-    if (saved && saved.length > 0) {
-      document.getElementById('landing').style.display = 'none';
-      document.getElementById('chat').classList.add('active');
-      messages = saved;
-      saved.forEach(msg => renderMessage(msg.role, msg.content, false));
-      setTimeout(() => { document.getElementById('messages').scrollTop = 999999; }, 100);
+    const access = getStoredAccess();
+    if (access && isAccessValid(access)) {
+      // Already validated — check conversation
+      showLanding();
     }
+    // Otherwise gate is shown by default
+  });
+
+  // Enter key on code input
+  document.getElementById('access-code-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') validateCode();
   });
 
   const textarea = document.getElementById('user-input');
