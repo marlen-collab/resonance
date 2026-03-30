@@ -6,7 +6,7 @@ module.exports = async function handler(req, res) {
   const { code, action } = req.body;
   const token = process.env.AIRTABLE_TOKEN;
   const baseId = process.env.AIRTABLE_BASE_ID;
-  const table = 'Access Codes';
+  const table = 'AccessCodes';
 
   if (!token || !baseId) {
     return res.status(500).json({ error: 'Server configuration error' });
