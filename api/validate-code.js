@@ -12,7 +12,7 @@ module.exports = async function handler(req, res) {
   }
   try {
     const upperCode = code.trim().toUpperCase();
-    const formula = `UPPER({Code})="${upperCode}"`;
+    const formula = `{Code}="${upperCode}"`;
     const url = `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(table)}?filterByFormula=${encodeURIComponent(formula)}`;
     const response = await fetch(url, {
       headers: { 'Authorization': `Bearer ${token}` }
