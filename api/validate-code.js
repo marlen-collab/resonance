@@ -18,57 +18,9 @@ module.exports = async function handler(req, res) {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const data = await response.json();
-    if (!data.records || data.records.length === 0) {
-      return res.status(200).json({ valid: false, reason: 'not_found' });
-    }
-    const record = data.records[0];
-    const fields = record.fields;
-    const recordId = record.id;
-    const status = (fields['Status'] || '').trim();
-    if (status === 'Revoked' || status === 'Expired') {
-      return res.status(200).json({ valid: false, reason: 'expired' });
-    }
-    const now = Date.now();
-    const ACCESS_DURATION_MS = 72 * 60 * 60 * 1000;
-    let firstUsedAt = fields['First Used At'] ? parseInt(fields['First Used At']) : null;
-    let expiresAt = fields['Expires At'] ? parseInt(fields['Expires At']) : null;
-    if (!firstUsedAt) {
-      firstUsedAt = now;
-      expiresAt = now + ACCESS_DURATION_MS;
-      await fetch(`https://api.airtable.com/v0/${baseId}/${encodeURIComponent(table)}/${recordId}`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          fields: {
-            'First Used At': String(firstUsedAt),
-            'Expires At': String(expiresAt),
-            'Status': 'Active'
-          }
-        })
-      });
-    }
-    if (now > expiresAt) {
-      await fetch(`https://api.airtable.com/v0/${baseId}/${encodeURIComponent(table)}/${recordId}`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ fields: { 'Status': 'Expired' } })
-      });
-      return res.status(200).json({ valid: false, reason: 'expired' });
-    }
-    return res.status(200).json({
-      valid: true,
-      recordId,
-      firstUsedAt,
-      expiresAt
-    });
+    // DEBUG — return raw response
+    return res.status(200).json({ debug: true, url, data });
   } catch (err) {
-    console.error('validate-code error:', err);
-    return res.status(500).json({ error: 'Server error' });
+    return res.status(500).json({ error: err.message });
   }
 }
