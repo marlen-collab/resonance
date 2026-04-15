@@ -343,12 +343,12 @@
     lines.forEach((id, i) => {
       setTimeout(() => {
         document.getElementById(id).classList.add('visible');
-      }, i * 2200);
+      }, i * 3330);
     });
 
     setTimeout(() => {
       final.classList.add('visible');
-    }, lines.length * 2200 + 600);
+    }, lines.length * 3330 + 800);
 
     setTimeout(() => {
       ritual.style.transition = 'opacity 1s ease';
@@ -358,7 +358,7 @@
         ritual.style.opacity = '1';
         onComplete();
       }, 1000);
-    }, lines.length * 2200 + 3200);
+    }, lines.length * 3330 + 4000);
   }
 
   // ── ACCESS GATE LOGIC ──
