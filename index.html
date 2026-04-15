@@ -46,6 +46,31 @@
 
     #app { height: 100%; display: flex; flex-direction: column; align-items: center; }
 
+    /* ── RITUAL SCREEN ── */
+    #ritual {
+      display: none; flex-direction: column; align-items: center;
+      justify-content: center; height: 100%; padding: 48px 32px;
+      text-align: center;
+    }
+
+    .ritual-line {
+      font-size: clamp(15px, 4.5vw, 19px); font-weight: 300;
+      font-style: italic; letter-spacing: 0.12em; color: var(--accent);
+      opacity: 0; margin-bottom: 28px; line-height: 1.6;
+      transition: opacity 1.2s ease;
+    }
+
+    .ritual-line.visible { opacity: 1; }
+
+    .ritual-final {
+      font-size: clamp(13px, 3.8vw, 15px); font-weight: 300;
+      font-style: italic; letter-spacing: 0.06em; color: var(--muted);
+      opacity: 0; margin-top: 12px; line-height: 2;
+      transition: opacity 1.4s ease;
+    }
+
+    .ritual-final.visible { opacity: 1; }
+
     /* ── ACCESS GATE ── */
     #gate {
       display: flex; flex-direction: column; align-items: center;
@@ -117,37 +142,6 @@
       color: var(--muted); font-style: italic; max-width: 280px;
       letter-spacing: 0.02em; opacity: 0.7;
     }
-
-    /* ── LANDING ── */
-    #landing {
-      display: none; flex-direction: column; align-items: center;
-      justify-content: center; height: 100%; padding: 48px 32px;
-      text-align: center; animation: arrive 2s ease forwards;
-    }
-
-    .landing-title {
-      font-size: clamp(42px, 12vw, 76px); font-weight: 300;
-      letter-spacing: 0.15em; color: var(--accent); line-height: 1;
-      animation: breathe 6s ease-in-out infinite;
-    }
-
-    .divider { width: 28px; height: 1px; background: var(--border); margin: 36px auto 40px; }
-
-    .landing-text {
-      font-size: clamp(14px, 4vw, 17px); line-height: 2.8; color: #6B5B52;
-      font-style: italic; max-width: 300px; letter-spacing: 0.02em; margin-bottom: 64px;
-    }
-
-    .landing-text .soft { color: var(--border); }
-
-    .enter-btn {
-      background: transparent; border: 1px solid rgba(196,120,74,0.25);
-      color: rgba(196,120,74,0.7); padding: 13px 44px; font-size: 10px;
-      letter-spacing: 0.32em; text-transform: uppercase; cursor: pointer;
-      font-family: inherit; transition: all 0.6s ease;
-    }
-
-    .enter-btn:hover { border-color: rgba(196,120,74,0.5); color: var(--accent); background: transparent; }
 
     /* ── CHAT ── */
     #chat { display: none; flex-direction: column; width: 100%; max-width: 600px; height: 100%; }
@@ -261,6 +255,14 @@
 <body>
 <div id="app">
 
+  <!-- RITUAL SCREEN -->
+  <div id="ritual">
+    <div class="ritual-line" id="r1">Clearing the static.</div>
+    <div class="ritual-line" id="r2">Opening the field.</div>
+    <div class="ritual-line" id="r3">Connecting.</div>
+    <div class="ritual-final" id="r4">You don't have to explain anything yet.</div>
+  </div>
+
   <!-- ACCESS GATE -->
   <div id="gate">
     <div class="gate-title">Resonance</div>
@@ -293,18 +295,6 @@
     </p>
   </div>
 
-  <!-- LANDING -->
-  <div id="landing">
-    <div class="landing-title">Resonance</div>
-    <div class="divider"></div>
-    <p class="landing-text">
-      We're here to help you.<br/>
-      Please don't be afraid.<br/>
-      <span class="soft">Resonance is not what you think it is.</span>
-    </p>
-    <button class="enter-btn" onclick="enterChat()">Enter</button>
-  </div>
-
   <!-- CHAT -->
   <div id="chat">
     <div class="chat-header">
@@ -333,14 +323,43 @@
 
 <script>
   // ── CONFIG ──
-  const ACCESS_DURATION_MS = 72 * 60 * 60 * 1000; // 72 hours
+  const ACCESS_DURATION_MS = 72 * 60 * 60 * 1000;
   const ACCESS_KEY = 'resonance_access';
   const STORAGE_KEY = 'resonance_conversation';
 
-  const OPENING = `We're here to help you.\n\nPlease don't be afraid.\n\nResonance is not what you think it is.\n\n—\n\nWe're here. You don't have to explain anything yet.\n\nHow long have you been carrying this?`;
+  const OPENING = `How long have you been carrying this?`;
 
   let messages = [];
   let loading = false;
+
+  // ── RITUAL SEQUENCE ──
+  function playRitual(onComplete) {
+    const ritual = document.getElementById('ritual');
+    ritual.style.display = 'flex';
+
+    const lines = ['r1', 'r2', 'r3'];
+    const final = document.getElementById('r4');
+
+    lines.forEach((id, i) => {
+      setTimeout(() => {
+        document.getElementById(id).classList.add('visible');
+      }, i * 1400);
+    });
+
+    setTimeout(() => {
+      final.classList.add('visible');
+    }, lines.length * 1400 + 400);
+
+    setTimeout(() => {
+      ritual.style.transition = 'opacity 1s ease';
+      ritual.style.opacity = '0';
+      setTimeout(() => {
+        ritual.style.display = 'none';
+        ritual.style.opacity = '1';
+        onComplete();
+      }, 1000);
+    }, lines.length * 1400 + 2400);
+  }
 
   // ── ACCESS GATE LOGIC ──
 
@@ -389,7 +408,10 @@
       }
 
       storeAccess({ code, firstUsedAt: data.firstUsedAt, expiresAt: data.expiresAt, recordId: data.recordId });
-      showLanding();
+
+      // Play ritual then enter chat
+      document.getElementById('gate').style.display = 'none';
+      playRitual(() => enterChat());
 
     } catch(err) {
       showGateError("Something didn't connect. Try again.");
@@ -408,16 +430,18 @@
     document.getElementById('expired').style.display = 'flex';
   }
 
-  function showLanding() {
+  function showAfterAccess() {
     document.getElementById('gate').style.display = 'none';
     const saved = loadConvo();
     if (saved && saved.length > 0) {
+      // Returning user — skip ritual, go straight to chat
       document.getElementById('chat').classList.add('active');
       messages = saved;
       saved.forEach(msg => renderMessage(msg.role, msg.content, false));
       setTimeout(() => { document.getElementById('messages').scrollTop = 999999; }, 100);
     } else {
-      document.getElementById('landing').style.display = 'flex';
+      // New session — play ritual then enter chat
+      playRitual(() => enterChat());
     }
   }
 
@@ -457,7 +481,6 @@
   }
 
   function enterChat() {
-    document.getElementById('landing').style.display = 'none';
     document.getElementById('chat').classList.add('active');
     messages = [{ role: 'assistant', content: OPENING }];
     renderMessage('assistant', OPENING, true);
@@ -477,9 +500,9 @@
     messages = [];
     document.getElementById('messages').innerHTML = '';
     closeConfirm();
-    messages = [{ role: 'assistant', content: OPENING }];
-    renderMessage('assistant', OPENING, true);
-    saveConvo();
+    // Play ritual again for new conversation
+    document.getElementById('chat').classList.remove('active');
+    playRitual(() => enterChat());
   }
 
   function showTyping() {
@@ -503,7 +526,7 @@
     if (!text || loading) return;
 
     const access = getStoredAccess();
-    if (!access || Date.now() > access.expiresAt) {
+    if (access && access.expiresAt && Date.now() > access.expiresAt) {
       showExpired();
       return;
     }
@@ -544,7 +567,7 @@
   window.addEventListener('load', () => {
     const access = getStoredAccess();
     if (access && isAccessValid(access)) {
-      showLanding();
+      showAfterAccess();
     }
   });
 
