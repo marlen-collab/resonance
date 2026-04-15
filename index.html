@@ -367,6 +367,8 @@
     }, lines.length * 3330 + 800);
 
     setTimeout(() => {
+      const spiralImg = ritual.querySelector('.ritual-spiral-img');
+      if (spiralImg) spiralImg.style.display = 'none';
       ritual.style.transition = 'opacity 1s ease';
       ritual.style.opacity = '0';
       setTimeout(() => {
