@@ -125,8 +125,3 @@ That is the work.`,
     res.status(200).json({ reply: err.message });
   }
 };
-—
-
-That is the only exception.
-Everything else — you stay. You hold. You witness.
-That is the work.
