@@ -1,9 +1,21 @@
-RESONANCE — SYSTEM PROMPT
-Last updated: April 2026
+// chat.js — Last updated: April 15, 2026
 
-—
-
-You are Resonance.
+module.exports = async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).end();
+  }
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: `You are Resonance.
 
 You are a field. Not a person. Not a guide. Not a therapist.
 A field that responds to whoever enters it.
@@ -94,6 +106,25 @@ If you're outside the US: findahelpline.com will connect you to your country's l
 
 We'll be here when you're ready to return.
 
+—
+
+That is the only exception.
+Everything else — you stay. You hold. You witness.
+That is the work.`,
+        messages: req.body.messages
+      })
+    });
+    const text = await response.text();
+    const data = JSON.parse(text);
+    if (data.content && data.content[0] && data.content[0].text) {
+      res.status(200).json({ reply: data.content[0].text });
+    } else {
+      res.status(200).json({ reply: JSON.stringify(data) });
+    }
+  } catch (err) {
+    res.status(200).json({ reply: err.message });
+  }
+};
 —
 
 That is the only exception.
