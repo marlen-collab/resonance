@@ -71,6 +71,18 @@
 
     .ritual-final.visible { opacity: 1; }
 
+    .ritual-spiral {
+      width: clamp(120px, 36vw, 180px);
+      height: clamp(120px, 36vw, 180px);
+      margin-bottom: 44px;
+      mix-blend-mode: multiply;
+      opacity: 0;
+      animation: spiralFadeIn 2s ease forwards, spiralRotate 12s linear infinite;
+    }
+
+    @keyframes spiralFadeIn { from { opacity: 0; } to { opacity: 0.88; } }
+    @keyframes spiralRotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
     /* ── ACCESS GATE ── */
     #gate {
       display: flex; flex-direction: column; align-items: center;
@@ -257,6 +269,7 @@
 
   <!-- RITUAL SCREEN -->
   <div id="ritual">
+    <img class="ritual-spiral" src="spiral-eye.png" alt="" />
     <div class="ritual-line" id="r1">Clearing the static.</div>
     <div class="ritual-line" id="r2">Opening the field.</div>
     <div class="ritual-line" id="r3">Connecting.</div>
