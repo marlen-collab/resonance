@@ -1,5 +1,4 @@
-// validate-code.js — Last updated: April 15, 2026
-
+// validate-code.js — Last updated: May 1, 2026
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -39,7 +38,7 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ valid: false, reason: 'expired' });
     }
     const now = Date.now();
-    const ACCESS_DURATION_MS = 72 * 60 * 60 * 1000;
+    const ACCESS_DURATION_MS = 30 * 24 * 60 * 60 * 1000; // 30 days — updated May 1, 2026
     let firstUsedAt = fields['First Used At'] ? parseInt(fields['First Used At']) : null;
     let expiresAt = fields['Expires At'] ? parseInt(fields['Expires At']) : null;
     if (!firstUsedAt) {
