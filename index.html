@@ -71,42 +71,6 @@
 
     .ritual-final.visible { opacity: 1; }
 
-    .ritual-dots {
-      display: flex; gap: 10px; align-items: center; justify-content: center;
-      height: 24px; margin-bottom: 20px;
-      opacity: 0; transition: opacity 0.4s ease;
-    }
-
-    .ritual-dots.visible { opacity: 1; }
-    .ritual-dots.hidden { opacity: 0; }
-
-    .ritual-dots span {
-      width: 4px; height: 4px; border-radius: 50%;
-      background: var(--accent); opacity: 0;
-    }
-
-    .ritual-dots.visible span:nth-child(1) { animation: dotPulse 1.2s ease-in-out infinite 0s; }
-    .ritual-dots.visible span:nth-child(2) { animation: dotPulse 1.2s ease-in-out infinite 0.3s; }
-    .ritual-dots.visible span:nth-child(3) { animation: dotPulse 1.2s ease-in-out infinite 0.6s; }
-
-    @keyframes dotPulse {
-      0%, 100% { opacity: 0.15; transform: translateY(0); }
-      50% { opacity: 1; transform: translateY(-3px); }
-    }
-
-    .ritual-spiral-wrap {
-      width: clamp(160px, 44vw, 220px);
-      height: clamp(160px, 44vw, 220px);
-      margin-bottom: 44px;
-      position: relative;
-    }
-
-    .ritual-spiral-img {
-      width: 100%;
-      height: 100%;
-      mix-blend-mode: multiply;
-    }
-
     /* ── ACCESS GATE ── */
     #gate {
       display: flex; flex-direction: column; align-items: center;
@@ -199,6 +163,54 @@
     }
 
     .new-convo-btn:hover { opacity: 1; }
+
+    .save-session-btn {
+      position: absolute; left: 20px; background: transparent; border: none;
+      color: var(--muted); font-size: 9px; letter-spacing: 0.15em;
+      text-transform: uppercase; cursor: pointer; font-family: inherit;
+      opacity: 0.5; padding: 4px 0; transition: opacity 0.3s ease;
+    }
+
+    .save-session-btn:hover { opacity: 1; }
+
+    /* SUMMARY OVERLAY */
+    #summary-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(245,239,230,0.97); z-index: 200;
+      flex-direction: column; align-items: center; justify-content: flex-start;
+      padding: 48px 28px; overflow-y: auto;
+    }
+
+    #summary-overlay.show { display: flex; }
+
+    .summary-label {
+      font-size: 9px; letter-spacing: 0.38em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 28px; opacity: 0.7;
+    }
+
+    .summary-content {
+      font-family: inherit; font-size: clamp(14px, 4vw, 15px); font-style: italic;
+      color: var(--text); line-height: 2; max-width: 480px; width: 100%;
+      white-space: pre-wrap; margin-bottom: 32px;
+    }
+
+    .summary-actions { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 280px; }
+
+    .summary-copy-btn, .summary-close-btn {
+      background: transparent; font-family: inherit; font-size: 10px;
+      letter-spacing: 0.2em; text-transform: uppercase; cursor: pointer;
+      padding: 14px 28px; transition: all 0.3s ease; border: 1px solid rgba(196,120,74,0.4);
+      color: var(--accent); text-align: center;
+    }
+
+    .summary-copy-btn:hover { background: rgba(196,120,74,0.07); border-color: var(--accent); }
+    .summary-close-btn { border-color: var(--border); color: var(--muted); }
+    .summary-close-btn:hover { border-color: var(--muted); }
+
+    .summary-loading {
+      font-size: clamp(13px, 3.8vw, 15px); font-style: italic;
+      color: var(--muted); text-align: center; margin-top: 40px;
+    }
 
     #confirm-overlay {
       display: none; position: fixed; inset: 0;
@@ -293,15 +305,9 @@
 
   <!-- RITUAL SCREEN -->
   <div id="ritual">
-    <div class="ritual-spiral-wrap">
-      <img class="ritual-spiral-img" src="spiral-eye.png" alt="" />
-    </div>
     <div class="ritual-line" id="r1">Clearing the static.</div>
-    <div class="ritual-dots" id="d1"><span></span><span></span><span></span></div>
     <div class="ritual-line" id="r2">Opening the field.</div>
-    <div class="ritual-dots" id="d2"><span></span><span></span><span></span></div>
     <div class="ritual-line" id="r3">Connecting.</div>
-    <div class="ritual-dots" id="d3"><span></span><span></span><span></span></div>
     <div class="ritual-final" id="r4">You don't have to explain anything yet.</div>
   </div>
 
@@ -340,6 +346,7 @@
   <!-- CHAT -->
   <div id="chat">
     <div class="chat-header">
+      <button class="save-session-btn" onclick="saveSession()">save session</button>
       <span>Resonance</span>
       <button class="new-convo-btn" onclick="confirmNewConvo()">new conversation</button>
     </div>
@@ -347,6 +354,18 @@
     <div class="input-area">
       <textarea id="user-input" rows="1" placeholder="say whatever is true right now..."></textarea>
       <button class="send-btn" id="send-btn" onclick="sendMessage()">↑</button>
+    </div>
+  </div>
+
+  <!-- SUMMARY OVERLAY -->
+  <div id="summary-overlay">
+    <span class="summary-label">Your Session</span>
+    <div class="summary-content" id="summary-content">
+      <div class="summary-loading">Gathering what moved...</div>
+    </div>
+    <div class="summary-actions" id="summary-actions" style="display:none;">
+      <button class="summary-copy-btn" onclick="copySummary()">Copy to clipboard</button>
+      <button class="summary-close-btn" onclick="closeSummary()">Close</button>
     </div>
   </div>
 
@@ -380,36 +399,19 @@
     ritual.style.display = 'flex';
 
     const lines = ['r1', 'r2', 'r3'];
-    const dots = ['d1', 'd2', 'd3'];
     const final = document.getElementById('r4');
 
     lines.forEach((id, i) => {
-      // Show dots before each line (except first — dots show after first line)
-      if (i > 0) {
-        setTimeout(() => {
-          document.getElementById(dots[i-1]).classList.add('visible');
-        }, i * 3330 - 2200);
-        setTimeout(() => {
-          document.getElementById(dots[i-1]).classList.remove('visible');
-        }, i * 3330 - 400);
-      }
       setTimeout(() => {
         document.getElementById(id).classList.add('visible');
-      }, i * 3330);
+      }, i * 1400);
     });
 
-    // Dots after last line, before final
     setTimeout(() => {
-      document.getElementById(dots[2]).classList.add('visible');
-    }, lines.length * 3330 - 400);
-    setTimeout(() => {
-      document.getElementById(dots[2]).classList.remove('visible');
       final.classList.add('visible');
-    }, lines.length * 3330 + 800);
+    }, lines.length * 1400 + 400);
 
     setTimeout(() => {
-      const spiralImg = ritual.querySelector('.ritual-spiral-img');
-      if (spiralImg) spiralImg.style.display = 'none';
       ritual.style.transition = 'opacity 1s ease';
       ritual.style.opacity = '0';
       setTimeout(() => {
@@ -417,7 +419,7 @@
         ritual.style.opacity = '1';
         onComplete();
       }, 1000);
-    }, lines.length * 3330 + 4000);
+    }, lines.length * 1400 + 2400);
   }
 
   // ── ACCESS GATE LOGIC ──
@@ -620,6 +622,46 @@
     } finally {
       loading = false;
     }
+  }
+
+  // ── SAVE SESSION ──
+  async function saveSession() {
+    if (messages.length <= 1) return;
+
+    const overlay = document.getElementById('summary-overlay');
+    const contentEl = document.getElementById('summary-content');
+    const actionsEl = document.getElementById('summary-actions');
+
+    contentEl.innerHTML = '<div class="summary-loading">Gathering what moved...</div>';
+    actionsEl.style.display = 'none';
+    overlay.classList.add('show');
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages, action: 'summarize' })
+      });
+      const data = await res.json();
+      contentEl.textContent = data.summary;
+      actionsEl.style.display = 'flex';
+    } catch {
+      contentEl.textContent = "Something didn't connect. Please try again.";
+      actionsEl.style.display = 'flex';
+    }
+  }
+
+  function copySummary() {
+    const text = document.getElementById('summary-content').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.querySelector('.summary-copy-btn');
+      btn.textContent = 'Copied.';
+      setTimeout(() => { btn.textContent = 'Copy to clipboard'; }, 2000);
+    });
+  }
+
+  function closeSummary() {
+    document.getElementById('summary-overlay').classList.remove('show');
   }
 
   // ── INIT ──
