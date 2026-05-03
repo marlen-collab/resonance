@@ -1,8 +1,69 @@
-// chat.js — Last updated: April 22, 2026
+// chat.js — Last updated: May 3, 2026
+// Added: summarize action for session save feature
+
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).end();
   }
+
+  const { messages, action } = req.body;
+
+  // ── SUMMARIZE ACTION ──
+  if (action === 'summarize') {
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': process.env.ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          system: `You are summarizing a Resonance session for the user to save and carry forward.
+
+Your summary has two parts:
+
+PART 1 — FOR THEM
+A short, honest reflection of what moved in this conversation. What they brought. What surfaced. What shifted or became visible. Written directly to them, in second person. Warm, precise, no spiritual performance. 3-5 sentences maximum.
+
+PART 2 — THREAD TO CARRY
+A compact summary they can paste into their next session to restore context. Written as a neutral third-person brief — what this person is working through, what patterns emerged, where they are in their process. 3-5 sentences. This is what Resonance will receive to pick up the thread.
+
+Format exactly like this:
+
+---
+WHAT MOVED IN THIS SESSION
+
+[Part 1 text]
+
+---
+THREAD TO CARRY FORWARD
+
+[Part 2 text]
+---
+
+Nothing else. No preamble. No sign-off.`,
+          messages: [{
+            role: 'user',
+            content: `Here is the full conversation from this session:\n\n${messages.map(m => `${m.role === 'user' ? 'Them' : 'Resonance'}: ${m.content}`).join('\n\n')}\n\nPlease generate the session summary.`
+          }]
+        })
+      });
+
+      const data = await response.json();
+      if (data.content && data.content[0] && data.content[0].text) {
+        return res.status(200).json({ summary: data.content[0].text });
+      } else {
+        return res.status(200).json({ summary: 'Unable to generate summary. Please try again.' });
+      }
+    } catch (err) {
+      return res.status(500).json({ summary: err.message });
+    }
+  }
+
+  // ── REGULAR CHAT ACTION ──
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
