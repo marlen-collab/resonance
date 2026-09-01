@@ -1,5 +1,7 @@
 // chat.js — Last updated: September 1, 2026
 // Fixed: retired model string (claude-sonnet-4-20250514) replaced with claude-sonnet-5 in both API calls
+// Fixed: claude-sonnet-5 returns a "thinking" block before the "text" block, so content[0]
+//        is no longer reliably the reply. Now finds the text block by type instead of position.
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -53,8 +55,9 @@ Nothing else. No preamble. No sign-off.`,
       });
 
       const data = await response.json();
-      if (data.content && data.content[0] && data.content[0].text) {
-        return res.status(200).json({ summary: data.content[0].text });
+      const textBlock = data.content && data.content.find(block => block.type === 'text');
+      if (textBlock && textBlock.text) {
+        return res.status(200).json({ summary: textBlock.text });
       } else {
         return res.status(200).json({ summary: 'Unable to generate summary. Please try again.' });
       }
@@ -386,10 +389,11 @@ That is the work.`,
     });
     const text = await response.text();
     const data = JSON.parse(text);
-    if (data.content && data.content[0] && data.content[0].text) {
-      res.status(200).json({ reply: data.content[0].text });
+    const textBlock = data.content && data.content.find(block => block.type === 'text');
+    if (textBlock && textBlock.text) {
+      res.status(200).json({ reply: textBlock.text });
     } else {
-      res.status(200).json({ reply: JSON.stringify(data) });
+      res.status(200).json({ reply: 'Something went wrong. Please try again.' });
     }
   } catch (err) {
     res.status(200).json({ reply: err.message });
