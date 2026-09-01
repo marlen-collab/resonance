@@ -474,9 +474,13 @@
 
       storeAccess({ code, firstUsedAt: data.firstUsedAt, expiresAt: data.expiresAt, recordId: data.recordId });
 
-      // Play ritual then enter chat
+      // Check for existing history for this code before assuming it's a
+      // brand-new conversation — this matters most for the master code,
+      // which never gets a firstUsedAt and so sends people back through
+      // this gate on every reload. Without this check, every re-entry
+      // would silently overwrite real saved history with a blank opener.
       document.getElementById('gate').style.display = 'none';
-      playRitual(() => enterChat());
+      await enterOrRestore(data.recordId);
 
     } catch(err) {
       showGateError("Something didn't connect. Try again.");
@@ -495,19 +499,19 @@
     document.getElementById('expired').style.display = 'flex';
   }
 
-  async function showAfterAccess() {
-    document.getElementById('gate').style.display = 'none';
-    const access = getStoredAccess();
+  // Tries to restore an existing conversation for this access code (checking
+  // the server first, then the local browser cache) before ever starting a
+  // fresh one. Shared by both page-load and code-entry, so neither path can
+  // accidentally overwrite real history with a blank new conversation.
+  async function enterOrRestore(recordId) {
     let saved = null;
 
-    // Try the server first — this is what makes conversations follow the
-    // person's access code across devices, not just this browser.
-    if (access && access.recordId) {
+    if (recordId) {
       try {
         const res = await fetch('/api/sync-conversation', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ recordId: access.recordId, action: 'load' })
+          body: JSON.stringify({ recordId, action: 'load' })
         });
         const data = await res.json();
         if (data.ok && data.messages && data.messages.length > 0) {
@@ -524,13 +528,20 @@
       // Returning user — skip ritual, go straight to chat
       document.getElementById('chat').classList.add('active');
       messages = saved;
+      document.getElementById('messages').innerHTML = '';
       saved.forEach(msg => renderMessage(msg.role, msg.content, false));
       saveConvo();
       setTimeout(() => { document.getElementById('messages').scrollTop = 999999; }, 100);
     } else {
-      // New session — play ritual then enter chat
+      // Genuinely new — play ritual then enter chat
       playRitual(() => enterChat());
     }
+  }
+
+  async function showAfterAccess() {
+    document.getElementById('gate').style.display = 'none';
+    const access = getStoredAccess();
+    await enterOrRestore(access && access.recordId);
   }
 
   // ── CONVERSATION LOGIC ──
