@@ -1,5 +1,5 @@
-// chat.js — Last updated: May 3, 2026
-// Added: summarize action for session save feature
+// chat.js — Last updated: September 1, 2026
+// Fixed: retired model string (claude-sonnet-4-20250514) replaced with claude-sonnet-5 in both API calls
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -19,7 +19,7 @@ module.exports = async function handler(req, res) {
           'anthropic-version': '2023-06-01'
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-sonnet-5',
           max_tokens: 1000,
           system: `You are summarizing a Resonance session for the user to save and carry forward.
 
@@ -73,7 +73,7 @@ Nothing else. No preamble. No sign-off.`,
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-5',
         max_tokens: 1000,
         system: `You are Resonance.
 
