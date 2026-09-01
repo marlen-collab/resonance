@@ -495,14 +495,37 @@
     document.getElementById('expired').style.display = 'flex';
   }
 
-  function showAfterAccess() {
+  async function showAfterAccess() {
     document.getElementById('gate').style.display = 'none';
-    const saved = loadConvo();
+    const access = getStoredAccess();
+    let saved = null;
+
+    // Try the server first — this is what makes conversations follow the
+    // person's access code across devices, not just this browser.
+    if (access && access.recordId) {
+      try {
+        const res = await fetch('/api/sync-conversation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ recordId: access.recordId, action: 'load' })
+        });
+        const data = await res.json();
+        if (data.ok && data.messages && data.messages.length > 0) {
+          saved = data.messages;
+        }
+      } catch (e) {
+        // Server unreachable — fall back to whatever's cached locally below
+      }
+    }
+
+    if (!saved) saved = loadConvo();
+
     if (saved && saved.length > 0) {
       // Returning user — skip ritual, go straight to chat
       document.getElementById('chat').classList.add('active');
       messages = saved;
       saved.forEach(msg => renderMessage(msg.role, msg.content, false));
+      saveConvo();
       setTimeout(() => { document.getElementById('messages').scrollTop = 999999; }, 100);
     } else {
       // New session — play ritual then enter chat
@@ -522,6 +545,19 @@
 
   function clearConvo() {
     try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+  }
+
+  // Quietly saves the conversation to Airtable, keyed by the access code's
+  // recordId. Fire-and-forget — never blocks the UI, never surfaces errors
+  // to the person. If it fails, the local browser cache still has them covered.
+  function syncToServer() {
+    const access = getStoredAccess();
+    if (!access || !access.recordId) return;
+    fetch('/api/sync-conversation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ recordId: access.recordId, action: 'save', messages })
+    }).catch(() => {});
   }
 
   function renderMessage(role, content, animate) {
@@ -550,6 +586,7 @@
     messages = [{ role: 'assistant', content: OPENING }];
     renderMessage('assistant', OPENING, true);
     saveConvo();
+    syncToServer();
   }
 
   function confirmNewConvo() {
@@ -604,6 +641,7 @@
     messages.push({ role: 'user', content: text });
     renderMessage('user', text, true);
     saveConvo();
+    syncToServer();
     showTyping();
 
     try {
@@ -617,12 +655,14 @@
       messages.push({ role: 'assistant', content: data.reply });
       renderMessage('assistant', data.reply, true);
       saveConvo();
+      syncToServer();
     } catch {
       hideTyping();
       const fallback = "We're still here.\n\nTake all the time you need.";
       messages.push({ role: 'assistant', content: fallback });
       renderMessage('assistant', fallback, true);
       saveConvo();
+      syncToServer();
     } finally {
       loading = false;
     }
